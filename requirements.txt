@@ -1,0 +1,18 @@
+# --- core stack (no strict pins, let pip resolve) ---
+langchain
+langgraph
+langchain-openai
+
+# optional: only keep this if you actually want Anthropic
+# langchain-anthropic
+
+python-dotenv
+pydantic
+pandas
+sqlalchemy
+sqlparse
+python-dateutil
+requests
+colorama
+streamlit
+
