@@ -67,7 +67,7 @@ analytics-engine/
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/analytics-engine.git
+git clone https://github.com/sitikanthasarangi/analytics-engine.git
 cd analytics-engine
 ```
 
