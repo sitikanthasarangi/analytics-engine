@@ -95,6 +95,9 @@ def question_interpreter_node(state: AnalyticsState) -> AnalyticsState:
 
     except Exception as e:
         # Fallback: create a very simple Intent so the rest of the graph can proceed
+        q_lower = question.lower()
+        is_generic = any(p in q_lower for p in generic_phrases)
+
         fallback_intent = Intent(
             task_type="custom",
             entities=[],
@@ -102,7 +105,9 @@ def question_interpreter_node(state: AnalyticsState) -> AnalyticsState:
             time_window="90d",
             segments=[],
             confidence=0.5,
+            is_generic=is_generic,
         )
+
         state["interpreted_intent"] = fallback_intent
         state["error_state"] = f"Failed to parse interpreter response cleanly: {str(e)}"
         state = log_state_transition(

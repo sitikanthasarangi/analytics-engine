@@ -13,7 +13,7 @@ This file wires together:
 - confidence_guardrails
 """
 
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Any
 
 from langgraph.graph import StateGraph, START, END
 
@@ -24,6 +24,7 @@ from agents import (
     analysis_planner_node,
     execution_agent_node,
     execute_queries_node,
+    answer_synthesizer_node,
     insight_generator_node,
     visualization_agent_node,
     confidence_guardrails_node,
@@ -76,6 +77,7 @@ def create_graph():
     graph_builder.add_node("planner", analysis_planner_node)
     graph_builder.add_node("execution_agent", execution_agent_node)
     graph_builder.add_node("execute_queries", execute_queries_node)
+    graph_builder.add_node("answer_synthesizer", answer_synthesizer_node)
     graph_builder.add_node("insights", insight_generator_node)
     graph_builder.add_node("visualizations", visualization_agent_node)
     graph_builder.add_node("guardrails", confidence_guardrails_node)
@@ -101,9 +103,11 @@ def create_graph():
     graph_builder.add_edge("planner", "execution_agent")
     graph_builder.add_edge("execution_agent", "execute_queries")
 
-    # After execution: either insights or straight to guardrails
+    # After execution: synthesize a direct answer, then route to insights or guardrails
+    graph_builder.add_edge("execute_queries", "answer_synthesizer")
+
     graph_builder.add_conditional_edges(
-        "execute_queries",
+        "answer_synthesizer",
         route_after_execution,
         {
             "insights": "insights",
@@ -122,7 +126,7 @@ def create_graph():
 
 
 # Cached graph instance for reuse
-_graph_instance: Optional[any] = None
+_graph_instance: Optional[Any] = None
 
 
 def get_graph():

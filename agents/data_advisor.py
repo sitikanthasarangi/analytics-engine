@@ -51,7 +51,8 @@ def get_all_available_sources():
     """
     Build a dict of all datasets from the catalog.
     Keys: dataset name
-    Values: table/location, columns, primary_keys, quality_score, record_count
+    Values: table/location, columns, primary_keys, quality_score, record_count,
+            description, column_metadata
     """
     sources = {}
     for ds in list_datasets():
@@ -62,6 +63,8 @@ def get_all_available_sources():
             "primary_keys": schema.get("primary_keys", []),
             "quality_score": schema.get("quality_score", 0.9),
             "record_count": schema.get("rows", 0),
+            "description": schema.get("description", ""),
+            "column_metadata": schema.get("column_metadata", {}),
         }
     return sources
 
@@ -78,26 +81,47 @@ def data_advisor_node(state: AnalyticsState) -> AnalyticsState:
         return log_state_transition(state, "failed", state["error_state"])
 
     all_sources = get_all_available_sources()
-    relevant_sources = []
     warnings = []
 
-    metrics_lower = [m.lower() for m in intent.metrics]
-    entities_lower = [e.lower() for e in intent.entities]
+    # If the user explicitly selected datasets, use only those
+    user_selected = state.get("selected_datasets")
+    if user_selected:
+        relevant_sources = [name for name in user_selected if name in all_sources]
+        if not relevant_sources:
+            warnings.append("User-selected datasets not found in catalog - falling back to auto-detect")
+            user_selected = None  # fall through to auto-detect below
 
-    # Simple heuristic: look for metrics/entities in column names
-    for name, meta in all_sources.items():
-        cols = [c.lower() for c in meta["columns"]]
-        if any(m in " ".join(cols) for m in metrics_lower) or any(
-            e in " ".join(cols) for e in entities_lower
-        ):
-            relevant_sources.append(name)
+    if not user_selected:
+        # Auto-detect: match metrics/entities against column names + descriptions + sample values
+        relevant_sources = []
+        metrics_lower = [m.lower() for m in intent.metrics]
+        entities_lower = [e.lower() for e in intent.entities]
 
-    # If generic or nothing matched, default to all datasets
-    if not relevant_sources or intent.is_generic:
-        relevant_sources = list(all_sources.keys())
-        warnings.append(
-            "No specific datasets matched intent clearly - using all available datasets"
-        )
+        for name, meta in all_sources.items():
+            cols_lower = [c.lower() for c in meta["columns"]]
+            cols_text = " ".join(cols_lower)
+            desc_text = meta.get("description", "").lower()
+
+            # Also check sample values from column_metadata
+            sample_text = ""
+            col_meta = meta.get("column_metadata", {})
+            for col_info in col_meta.values():
+                sample_vals = col_info.get("sample_values", [])
+                sample_text += " ".join(str(v).lower() for v in sample_vals) + " "
+
+            searchable = f"{cols_text} {desc_text} {sample_text}"
+
+            if any(m in searchable for m in metrics_lower) or any(
+                e in searchable for e in entities_lower
+            ):
+                relevant_sources.append(name)
+
+        # If generic or nothing matched, default to all datasets
+        if not relevant_sources or intent.is_generic:
+            relevant_sources = list(all_sources.keys())
+            warnings.append(
+                "No specific datasets matched intent clearly - using all available datasets"
+            )
 
     # Build DataSources object
     sources = []
@@ -141,52 +165,4 @@ def data_advisor_node(state: AnalyticsState) -> AnalyticsState:
         if sources
         else "No datasets available",
     )
-    return state
-
-
-    # Build DataSources object
-    sources = []
-    for source_key in relevant_sources:
-        source_info = all_sources[source_key]
-        source = DataSource(
-            name=source_key,
-            table_name=source_info["table"],
-            columns=source_info["columns"],
-            primary_keys=source_info["primary_keys"],
-            quality_score=source_info["quality_score"],
-            last_updated=datetime.now().isoformat(),
-            record_count=source_info["record_count"],
-        )
-        sources.append(source)
-
-    # Check for low-quality sources
-    low_quality_sources = [s for s in sources if s.quality_score < 0.85]
-    if low_quality_sources:
-        warnings.append(
-            f"Low quality sources detected: {[s.name for s in low_quality_sources]}"
-        )
-
-    if not sources:
-        warnings.append("No data sources found at all")
-
-    avg_quality = (
-        sum(s.quality_score for s in sources) / len(sources) if sources else 0.0
-    )
-
-    data_sources = DataSources(
-        sources=sources,
-        total_sources=len(sources),
-        coverage_score=0.9 if sources else 0.0,
-        warnings=warnings,
-    )
-
-    state["available_data_sources"] = data_sources
-    state = log_state_transition(
-        state,
-        "validating",
-        f"Found {len(sources)} relevant data sources with avg quality {avg_quality:.2f}"
-        if sources
-        else "No data sources available",
-    )
-
     return state

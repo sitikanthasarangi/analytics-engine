@@ -3,6 +3,11 @@ from state import state_to_dict
 from main import run_analysis
 from data_manager import list_datasets, register_dataset, DATASETS_DIR
 import pandas as pd
+try:
+    import plotly.express as px
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
 from pathlib import Path
 from agents.data_advisor import AVAILABLE_DATA_SOURCES  # static ones (optional)
 from data_manager import list_datasets, register_dataset, DATASETS_DIR
@@ -50,11 +55,34 @@ if uploaded is not None:
 
     # Infer basic schema
     df = pd.read_csv(target_path, nrows=500)  # sample for speed
+    columns = list(df.columns)
+    numeric_cols = df.select_dtypes(include="number").columns.tolist()
+    categorical_cols = [c for c in columns if c not in numeric_cols]
+
+    # Build per-column metadata
+    column_meta = {}
+    for c in columns:
+        info = {"dtype": str(df[c].dtype)}
+        if c in numeric_cols:
+            info["role"] = "metric"
+            info["min"] = float(df[c].min()) if df[c].notna().any() else None
+            info["max"] = float(df[c].max()) if df[c].notna().any() else None
+        else:
+            info["role"] = "dimension"
+            info["n_unique"] = int(df[c].nunique())
+            info["sample_values"] = df[c].dropna().unique()[:5].tolist()
+        column_meta[c] = info
+
+    # Auto-generate a human-readable description from the columns
+    description = f"Dataset with {len(columns)} columns ({len(numeric_cols)} numeric, {len(categorical_cols)} categorical). Columns: {', '.join(columns[:15])}"
+
     schema = {
-        "columns": list(df.columns),
+        "columns": columns,
         "rows": int(df.shape[0]),
         "primary_keys": [],  # user can edit later if needed
         "quality_score": 0.9,
+        "column_metadata": column_meta,
+        "description": description,
     }
 
     logical_name = st.sidebar.text_input(
@@ -66,7 +94,7 @@ if uploaded is not None:
         st.sidebar.success(f"Registered dataset '{logical_name}'")
         st.rerun()
 
-# Main question input       
+# Main question input
 
 default_question = "What were our top products last month?"
 
@@ -77,16 +105,48 @@ question = st.text_area(
     help="Examples: 'Why did revenue drop last quarter?' or 'Which regions underperformed?'",
 )
 
+# Dataset selector
+dataset_names = [ds["name"] for ds in list_datasets()]
+selected_datasets = st.multiselect(
+    "Select dataset(s) to analyze:",
+    options=dataset_names,
+    default=None,
+    help="Leave empty to let the engine auto-detect relevant datasets.",
+)
+
 run_button = st.button("Run Analysis")
 
 if run_button and question.strip():
     with st.spinner("Running multi-agent analysis..."):
-        state = run_analysis(question.strip(), user_id=user_id)
+        state = run_analysis(
+            question.strip(),
+            user_id=user_id,
+            selected_datasets=selected_datasets if selected_datasets else None,
+        )
 
     if not state:
         st.error("Analysis failed. Check server logs.")
     else:
         s = state  # shorthand
+
+        # Direct answer — show first and prominently
+        if s.get("direct_answer"):
+            st.subheader("💬 Answer")
+            st.markdown(s["direct_answer"])
+            st.divider()
+
+        # Query results tables (from DuckDB SQL execution)
+        if s.get("execution_results") and s["execution_results"].result_data:
+            qr = s["execution_results"].result_data.get("query_results")
+            if qr:
+                st.subheader("🔍 Query Results")
+                for step_key, step_result in qr.items():
+                    with st.expander(step_key, expanded=True):
+                        if step_result.get("data"):
+                            st.dataframe(pd.DataFrame(step_result["data"]))
+                        else:
+                            st.caption("No rows returned.")
+                        st.code(step_result.get("sql", ""), language="sql")
 
         # Show interpreted intent
         if s.get("interpreted_intent"):
@@ -153,6 +213,59 @@ if run_button and question.strip():
                         with st.expander("Sample rows"):
                             st.dataframe(pd.DataFrame(ds_result["sample"]))
 
+
+        # Rendered charts from execution data
+        if s.get("execution_results") and s["execution_results"].result_data:
+            st.subheader("📈 Visualizations")
+            for ds_name, ds_result in s["execution_results"].result_data.items():
+                if "groupby" in ds_result:
+                    gb = ds_result["groupby"]
+                    gb_df = pd.DataFrame(gb["data"])
+                    dim, metric = gb["dimension"], gb["metric"]
+
+                    if dim in gb_df.columns and "sum" in gb_df.columns:
+                        chart_df = gb_df.head(15)
+                        if HAS_PLOTLY:
+                            fig = px.bar(
+                                chart_df, x=dim, y="sum",
+                                title=f"{metric} (sum) by {dim} — {ds_name}",
+                                labels={"sum": f"{metric} (sum)", dim: dim},
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.markdown(f"**{metric} (sum) by {dim} — {ds_name}**")
+                            st.bar_chart(chart_df.set_index(dim)["sum"])
+
+                    if dim in gb_df.columns and "mean" in gb_df.columns:
+                        chart_df = gb_df.head(15)
+                        if HAS_PLOTLY:
+                            fig = px.bar(
+                                chart_df, x=dim, y="mean",
+                                title=f"{metric} (mean) by {dim} — {ds_name}",
+                                labels={"mean": f"{metric} (mean)", dim: dim},
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.markdown(f"**{metric} (mean) by {dim} — {ds_name}**")
+                            st.bar_chart(chart_df.set_index(dim)["mean"])
+
+                # Summary: mean values per column
+                if "summary" in ds_result:
+                    summary_df = pd.DataFrame(ds_result["summary"])
+                    if "mean" in summary_df.columns and "index" in summary_df.columns:
+                        numeric_summary = summary_df.dropna(subset=["mean"]).head(12)
+                        if not numeric_summary.empty:
+                            if HAS_PLOTLY:
+                                fig = px.bar(
+                                    numeric_summary, x="index", y="mean",
+                                    title=f"Mean values by column — {ds_name}",
+                                    labels={"index": "Column", "mean": "Mean"},
+                                    color_discrete_sequence=["#EF553B"],
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.markdown(f"**Mean values by column — {ds_name}**")
+                                st.bar_chart(numeric_summary.set_index("index")["mean"])
 
         # Insights
         if s.get("insights"):

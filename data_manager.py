@@ -56,7 +56,8 @@ def register_dataset(
         location = f"data/datasets/{filename}"
     else:
         # for warehouse datasets, put real table path in schema["location"]
-        location = schema.get("location")
+        location = schema.get("location") or name
+
 
     entry = {
         "name": name,

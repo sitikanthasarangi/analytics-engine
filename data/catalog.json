@@ -30,7 +30,228 @@
         ],
         "rows": 500,
         "primary_keys": [],
-        "quality_score": 0.9
+        "quality_score": 0.9,
+        "description": "Dataset with 20 columns (17 numeric, 3 categorical). Columns: VendorID, lpep_pickup_datetime, lpep_dropoff_datetime, store_and_fwd_flag, RatecodeID, PULocationID, DOLocationID, passenger_count, trip_distance, fare_amount, extra, mta_tax, tip_amount, tolls_amount, ehail_fee",
+        "column_metadata": {
+          "VendorID": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 2.0
+          },
+          "lpep_pickup_datetime": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 496,
+            "sample_values": [
+              "2021-07-01 00:30:52",
+              "2021-07-01 00:25:36",
+              "2021-07-01 00:05:58",
+              "2021-07-01 00:41:40",
+              "2021-07-01 00:51:32"
+            ]
+          },
+          "lpep_dropoff_datetime": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 496,
+            "sample_values": [
+              "2021-07-01 00:35:36",
+              "2021-07-01 01:01:31",
+              "2021-07-01 00:12:00",
+              "2021-07-01 00:47:23",
+              "2021-07-01 00:58:46"
+            ]
+          },
+          "store_and_fwd_flag": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 2,
+            "sample_values": [
+              "N",
+              "Y"
+            ]
+          },
+          "RatecodeID": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 5.0
+          },
+          "PULocationID": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 7.0,
+            "max": 264.0
+          },
+          "DOLocationID": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 4.0,
+            "max": 265.0
+          },
+          "passenger_count": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 6.0
+          },
+          "trip_distance": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 37.6
+          },
+          "fare_amount": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": -12.0,
+            "max": 107.5
+          },
+          "extra": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 3.25
+          },
+          "mta_tax": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": -0.5,
+            "max": 0.5
+          },
+          "tip_amount": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 26.64
+          },
+          "tolls_amount": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 13.1
+          },
+          "ehail_fee": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": null,
+            "max": null
+          },
+          "improvement_surcharge": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": -0.3,
+            "max": 0.3
+          },
+          "total_amount": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": -12.8,
+            "max": 115.44
+          },
+          "payment_type": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 4.0
+          },
+          "trip_type": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 2.0
+          },
+          "congestion_surcharge": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 0.0,
+            "max": 2.75
+          }
+        }
+      }
+    },
+    {
+      "name": "FAOSTAT_data_11-24-2020",
+      "filename": "FAOSTAT_data_11-24-2020.csv",
+      "kind": "file",
+      "location": "data/datasets/FAOSTAT_data_11-24-2020.csv",
+      "schema": {
+        "columns": [
+          "Country Code",
+          "Country",
+          "M49 Code",
+          "ISO2 Code",
+          "ISO3 Code",
+          "Start Year",
+          "End Year"
+        ],
+        "rows": 321,
+        "primary_keys": [],
+        "quality_score": 0.9,
+        "description": "Dataset with 7 columns (4 numeric, 3 categorical). Columns: Country Code, Country, M49 Code, ISO2 Code, ISO3 Code, Start Year, End Year",
+        "column_metadata": {
+          "Country Code": {
+            "dtype": "int64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 9011.0
+          },
+          "Country": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 321,
+            "sample_values": [
+              "Afghanistan",
+              "Africa",
+              "\u00c5land Islands",
+              "Albania",
+              "Algeria"
+            ]
+          },
+          "M49 Code": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 1.0,
+            "max": 894.0
+          },
+          "ISO2 Code": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 244,
+            "sample_values": [
+              "AF",
+              "AL",
+              "DZ",
+              "AS",
+              "AD"
+            ]
+          },
+          "ISO3 Code": {
+            "dtype": "object",
+            "role": "dimension",
+            "n_unique": 257,
+            "sample_values": [
+              "AFG",
+              "X06",
+              "ALA",
+              "ALB",
+              "DZA"
+            ]
+          },
+          "Start Year": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 1991.0,
+            "max": 2012.0
+          },
+          "End Year": {
+            "dtype": "float64",
+            "role": "metric",
+            "min": 1990.0,
+            "max": 2011.0
+          }
+        }
       }
     }
   ]

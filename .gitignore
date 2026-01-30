@@ -21,3 +21,7 @@ ENV/
 *.log
 
 data/datasets/*
+
+# Python bytecode
+__pycache__/
+*.pyc

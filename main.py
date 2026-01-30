@@ -155,7 +155,7 @@ def format_results(state) -> str:
     return "\n".join(output)
 
 
-def run_analysis(question: str, user_id: str = "user", stream: bool = False):
+def run_analysis(question: str, user_id: str = "user", stream: bool = False, selected_datasets=None):
     """
     Run the analytics engine on a question.
 
@@ -163,6 +163,7 @@ def run_analysis(question: str, user_id: str = "user", stream: bool = False):
         question: User's analytical question
         user_id: Unique identifier for user
         stream: (currently unused, streaming disabled for simplicity)
+        selected_datasets: Optional list of dataset names to restrict analysis to
 
     Returns:
         Final state dictionary
@@ -179,7 +180,7 @@ def run_analysis(question: str, user_id: str = "user", stream: bool = False):
         return None
 
     # Create initial state
-    state = create_initial_state(question, user_id)
+    state = create_initial_state(question, user_id, selected_datasets=selected_datasets)
     print_status("State", "✓ Initial state created")
 
     # Get compiled graph

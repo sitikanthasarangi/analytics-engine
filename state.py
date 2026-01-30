@@ -141,6 +141,7 @@ class AnalyticsState(TypedDict):
     # Input
     question: str
     user_id: str
+    selected_datasets: Optional[List[str]]  # user-chosen dataset names; None = auto
     
     # Interpretation stage
     interpreted_intent: Optional[Intent]
@@ -159,6 +160,9 @@ class AnalyticsState(TypedDict):
     execution_results: Optional[ExecutionResults]
     execution_errors: List[str]
     
+    # Answer synthesis
+    direct_answer: Optional[str]
+
     # Insight generation stage
     insights: List[Insight]
     anomalies: List[Anomaly]
@@ -179,11 +183,12 @@ class AnalyticsState(TypedDict):
 # Helper Functions
 # ============================================================================
 
-def create_initial_state(question: str, user_id: str = "anonymous") -> AnalyticsState:
+def create_initial_state(question: str, user_id: str = "anonymous", selected_datasets: Optional[List[str]] = None) -> AnalyticsState:
     """Create initial state for new analysis."""
     return {
         "question": question,
         "user_id": user_id,
+        "selected_datasets": selected_datasets,
         "interpreted_intent": None,
         "available_data_sources": None,
         "analysis_plan": None,
@@ -191,6 +196,7 @@ def create_initial_state(question: str, user_id: str = "anonymous") -> Analytics
         "approval_notes": None,
         "execution_results": None,
         "execution_errors": [],
+        "direct_answer": None,
         "insights": [],
         "anomalies": [],
         "visualizations": [],
